@@ -1,0 +1,11 @@
+spring:
+  ai:
+    alibaba:
+      a2a:
+        nacos:
+          server-addr: ${NACOS_ADDRESS:localhost:8848}
+          namespace: ${NACOS_NAMESPACE:public}
+          username: ${NACOS_USERNAME:nacos}
+          password: ${NACOS_PASSWORD:123456}
+        server:
+          version: 1.0.0

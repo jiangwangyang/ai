@@ -1,0 +1,16 @@
+spring:
+  ai:
+    alibaba:
+      mcp:
+        nacos:
+          server-addr: ${NACOS_ADDRESS:localhost:8848}
+          namespace: ${NACOS_NAMESPACE:public}
+          username: ${NACOS_USERNAME:nacos}
+          password: ${NACOS_PASSWORD:123456}
+          client:
+            enabled: true
+            sse:
+              connections:
+                WebSearch:
+                  service-name: WebSearch
+                  version: 1.0.0

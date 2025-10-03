@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Map;
@@ -19,12 +18,12 @@ import java.util.Map;
 public class ChatController {
 
     @Autowired
-    private BaseAgent baseAgent;
+    private BaseAgent remoteAgent;
 
     @GetMapping("/chat")
-    public Flux<String> chat(@RequestParam("message") String message) throws GraphStateException, GraphRunnerException {
-        return baseAgent
-                .stream(Map.of("input", List.of(new UserMessage(message))))
+    public Flux<String> chat(@RequestParam("message") String message, @RequestParam("userId") String userId) throws GraphStateException, GraphRunnerException {
+        return remoteAgent
+                .stream(Map.of("messages", List.of(new UserMessage(userId + ": " + message))))
                 .mapNotNull(output -> {
                     if (output.isSTART() || output.isEND()) {
                         return null;
@@ -33,7 +32,7 @@ public class ChatController {
                         return ((StreamingOutput) output).chunk();
                     }
                     return null;
-                }).publishOn(Schedulers.parallel());
+                });
     }
 
 }
