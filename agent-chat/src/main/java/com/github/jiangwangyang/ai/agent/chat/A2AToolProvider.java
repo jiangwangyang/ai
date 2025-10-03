@@ -1,7 +1,9 @@
-package com.github.jiangwangyang.ai.agent.search;
+package com.github.jiangwangyang.ai.agent.chat;
 
 import com.alibaba.cloud.ai.graph.OverAllState;
-import com.alibaba.cloud.ai.graph.agent.BaseAgent;
+import com.alibaba.cloud.ai.graph.agent.a2a.A2aRemoteAgent;
+import com.alibaba.cloud.ai.graph.agent.a2a.AgentCardProvider;
+import com.alibaba.cloud.ai.graph.agent.a2a.AgentCardWrapper;
 import com.alibaba.cloud.ai.graph.exception.GraphRunnerException;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import org.springframework.ai.tool.ToolCallback;
@@ -15,9 +17,11 @@ import org.springframework.ai.tool.support.ToolUtils;
 import org.springframework.lang.NonNull;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-public class AgentToolProvider implements ToolCallbackProvider {
+public class A2AToolProvider implements ToolCallbackProvider {
 
     private static final Method CALL_METHOD;
 
@@ -29,14 +33,26 @@ public class AgentToolProvider implements ToolCallbackProvider {
         }
     }
 
-    private final List<AgentTool> agentToolList = new ArrayList<>();
+    private final List<AgentTool> agentToolList;
 
-    public AgentToolProvider(Builder builder) {
-        agentToolList.addAll(builder.agentToolList);
-    }
-
-    public static Builder builder() {
-        return new Builder();
+    public A2AToolProvider(List<String> remoteAgentNameList, AgentCardProvider agentCardProvider) {
+        agentToolList = remoteAgentNameList.stream()
+                .map(name -> {
+                    try {
+                        AgentCardWrapper agentCardWrapper = agentCardProvider.getAgentCard(name);
+                        return A2aRemoteAgent.builder()
+                                .agentCard(agentCardWrapper.getAgentCard())
+                                .name(agentCardWrapper.name())
+                                .description(agentCardWrapper.description())
+                                .inputKey("messages")
+                                .outputKey("messages")
+                                .build();
+                    } catch (GraphStateException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .map(AgentTool::new)
+                .toList();
     }
 
     @Override
@@ -56,9 +72,9 @@ public class AgentToolProvider implements ToolCallbackProvider {
                 ).toArray(ToolCallback[]::new);
     }
 
-    public record AgentTool(BaseAgent agent, String inputKey) {
+    public record AgentTool(A2aRemoteAgent agent) {
         public String call(@ToolParam(description = "详细描述你需要完成什么功能") String requirement) {
-            Map<String, Object> inputMap = Map.of(inputKey, requirement);
+            Map<String, Object> inputMap = Map.of("messages", requirement);
             try {
                 Optional<OverAllState> output = agent.invoke(inputMap);
                 return output
@@ -70,31 +86,6 @@ public class AgentToolProvider implements ToolCallbackProvider {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    public static final class Builder {
-
-        private final List<AgentTool> agentToolList = new ArrayList<>();
-
-        public Builder addAgent(BaseAgent agent, String inputKey) {
-            agentToolList.add(new AgentTool(agent, inputKey));
-            return this;
-        }
-
-        public Builder addAgent(AgentTool... agentTool) {
-            agentToolList.addAll(Arrays.asList(agentTool));
-            return this;
-        }
-
-        public Builder addAgent(Collection<AgentTool> agentToolCollection) {
-            this.agentToolList.addAll(agentToolCollection);
-            return this;
-        }
-
-        public AgentToolProvider build() {
-            return new AgentToolProvider(this);
-        }
-
     }
 
 }
