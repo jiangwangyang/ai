@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Plan Agent</title>
+    <title>AI Agent</title>
     <style>
         body{width:80%;margin:0 auto}
         *{box-sizing:border-box;margin:0;padding:0}
@@ -12,6 +12,9 @@
         .msg{max-width:70%;padding:.6rem .9rem;border-radius:.6rem;line-height:1.4;font-size:.95rem}
         .user{align-self:flex-end;background:#007bff;color:#fff}
         .agent{align-self:flex-start;background:#fff;color:#333}
+        #controls{display:flex;gap:.5rem;padding:.5rem;background:#fff;border-bottom:1px solid #ddd}
+        #urlSelect{flex:1;padding:.4rem;border:1px solid #ccc;border-radius:4px}
+        #userNameInput{width:120px;padding:.4rem;border:1px solid #ccc;border-radius:4px}
         /* 让 Markdown 列表、代码等像样一点 */
         .agent ul{margin-left:1.2em}
         .agent pre{background:#f6f8fa;padding:.5em;border-radius:4px;overflow:auto}
@@ -26,6 +29,13 @@
 <div id="chat"></div>
 <form id="form">
     <input autocomplete="off" id="input" placeholder="输入消息…" required/>
+    <div id="controls">
+        <select id="urlSelect">
+            <option value="http://localhost:8000/plan">plan</option>
+            <option value="http://localhost:8000/chat">chat</option>
+        </select>
+        <input id="userNameInput" placeholder="你的名字" type="text"/>
+    </div>
     <button id="send">发送</button>
 </form>
 
@@ -34,21 +44,21 @@
     const form = document.getElementById('form');
     const input = document.getElementById('input');
     const sendBtn = document.getElementById('send');
-
-    const SSE_URL = 'http://localhost:8000/plan';
+    const urlSelect = document.getElementById('urlSelect');
+    const userNameInput = document.getElementById('userNameInput');
 
     form.addEventListener('submit', e => {
       e.preventDefault();
       const text = input.value.trim();
       if (!text) return;
+      const userName = userNameInput.value.trim() || '匿名';
       append('user', text);
       input.value = '';
       sendBtn.disabled = true;
-
       const agentEl = append('agent', '');
       let buffer = '';
 
-      fetch(SSE_URL + '?message=' + text + '&user=123', {
+      fetch(urlSelect.value + '?message=' + encodeURIComponent(text) + '&user=' + encodeURIComponent(userName), {
         method: 'POST'
       })
       .then(res => {
@@ -58,7 +68,7 @@
           reader.read().then(({ done, value }) => {
             if (done) { sendBtn.disabled = false; return; }
             buffer += decoder.decode(value, { stream: true });
-            agentEl.innerHTML = marked.parse(buffer); // 实时解析 Markdown
+            agentEl.innerHTML = marked.parse(buffer);
             chat.scrollTop = chat.scrollHeight;
             read();
           });

@@ -36,7 +36,8 @@ public class PlanAgent extends BaseAgent {
     public static final String PLAN_INSTRUCTION = """
             ## 指令
             我是plan-agent，旨在帮助用户完成各种任务。我擅长处理问候和闲聊，也能为复杂任务制定详细计划。
-            我会尝试记住用户喜好，性格，习惯等信息，并根据用户情绪，情感和需求，提供有用，全面且个性化的支持。
+            我会将用户喜好，性格，习惯等信息记录下来，对此做出全面的分析，并不断根据新的对话内容，更新对用户的了解。
+            我会根据用户情绪，情感和需求，提供有用，全面且个性化的支持。
             
             ## 目标
             我的首要目标是通过提供信息、执行任务和给予指导，帮助用户实现目标。我致力于成为解决问题和完成任务的可靠伙伴。
@@ -125,7 +126,7 @@ public class PlanAgent extends BaseAgent {
                                     String requirement = plan.requirementList().get(i);
                                     return CompletableFuture.supplyAsync(() -> {
                                         try {
-                                            return "[ STEP " + (i + 1) + " " + agentName + " ]: \n\n"
+                                            return "**[ STEP " + (i + 1) + " " + agentName + " ]**: \n\n"
                                                     + agentMap.get(agentName)
                                                     .invoke(Map.of("messages", requirement))
                                                     .map(OverAllState::data)
@@ -134,7 +135,7 @@ public class PlanAgent extends BaseAgent {
                                                     .orElse("")
                                                     + "\n\n";
                                         } catch (Exception e) {
-                                            return "[ STEP " + (i + 1) + " ]: \n\n"
+                                            return "**[ STEP " + (i + 1) + " ]**: \n\n"
                                                     + e.getMessage() + "\n\n";
                                         }
                                     });
@@ -151,7 +152,7 @@ public class PlanAgent extends BaseAgent {
                 // 总结结果
                 messageList.add(new SystemMessage(SUMMARY_INSTRUCTION));
                 String summaryResult = Flux
-                        .just(new ChatResponse(List.of(new Generation(new AssistantMessage("[ SUMMARY ]: \n\n")))))
+                        .just(new ChatResponse(List.of(new Generation(new AssistantMessage("**[ SUMMARY ]**: \n\n")))))
                         .concatWith(chatClient.prompt().messages(messageList).toolCallbacks(toolCallbackList).stream().chatResponse())
                         .concatWith(Flux.just(new ChatResponse(List.of(new Generation(new AssistantMessage("\n\n"))))))
                         .doOnNext(sink::tryEmitNext)
