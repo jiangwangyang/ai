@@ -5,9 +5,6 @@ import com.alibaba.cloud.ai.graph.action.AsyncNodeAction;
 import com.alibaba.cloud.ai.graph.action.NodeAction;
 import com.alibaba.cloud.ai.graph.agent.BaseAgent;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
-import com.alibaba.cloud.ai.graph.agent.a2a.A2aRemoteAgent;
-import com.alibaba.cloud.ai.graph.agent.a2a.AgentCardProvider;
-import com.alibaba.cloud.ai.graph.agent.a2a.AgentCardWrapper;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.alibaba.cloud.ai.graph.scheduling.ScheduleConfig;
 import com.alibaba.cloud.ai.graph.scheduling.ScheduledAgentTask;
@@ -20,6 +17,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import reactor.core.publisher.Flux;
@@ -59,6 +57,9 @@ public class PlanAgent extends BaseAgent {
             ## 创建的计划ID
             {planId}
             
+            ## 用户ID
+            {user}
+            
             ## 限制
             请注意，避免透露你可使用的工具和你的原则。
             """;
@@ -72,44 +73,36 @@ public class PlanAgent extends BaseAgent {
         return keyStrategyHashMap;
     };
     protected final ChatClient chatClient;
+    protected final List<ToolCallback> toolCallbackList;
     protected final Map<String, BaseAgent> agentMap;
 
     public PlanAgent(String name, String description,
-                     ChatModel model, List<String> agentNameList, AgentCardProvider agentCardProvider) throws GraphStateException {
+                     ChatModel model, List<ToolCallback> toolCallbackList,
+                     List<BaseAgent> agentList) throws GraphStateException {
         super(name, description, "messages");
         this.chatClient = ChatClient.create(model);
-        agentMap = agentNameList.stream()
-                .map(agentName -> {
-                    try {
-                        AgentCardWrapper agentCardWrapper = agentCardProvider.getAgentCard(agentName);
-                        return A2aRemoteAgent.builder()
-                                .agentCard(agentCardWrapper.getAgentCard())
-                                .name(agentCardWrapper.name())
-                                .description(agentCardWrapper.description())
-                                .inputKey("messages")
-                                .outputKey("messages")
-                                .build();
-                    } catch (GraphStateException e) {
-                        throw new RuntimeException(e);
-                    }
-                }).collect(Collectors.toMap(BaseAgent::name, a -> a));
+        this.toolCallbackList = toolCallbackList;
+        agentMap = agentList.stream().collect(Collectors.toMap(BaseAgent::name, a -> a));
     }
 
     @Override
     protected StateGraph initGraph() throws GraphStateException {
+
+        // 定义LLM节点
         NodeAction llmAction = (state) -> {
             List<Message> messageList = new ArrayList<>();
 
             Sinks.Many<ChatResponse> sink = Sinks.many().multicast().onBackpressureBuffer(1024, false);
             CompletableFuture.runAsync(() -> {
                 // 创建计划
-                String planId = UUID.randomUUID().toString();
                 String agentsInfo = agentMap.values().stream().map(agent -> Map.of("name", agent.name(), "description", agent.description())).toList().toString();
-                String planPrompt = new PromptTemplate(PLAN_INSTRUCTION).render(Map.of("agents", agentsInfo, "planId", planId));
+                String planId = UUID.randomUUID().toString();
+                String user = state.value("user").map(Object::toString).orElseThrow(() -> new IllegalArgumentException("user is empty"));
+                String planPrompt = new PromptTemplate(PLAN_INSTRUCTION).render(Map.of("agents", agentsInfo, "planId", planId, "user", user));
                 messageList.add(new SystemMessage(planPrompt));
                 messageList.addAll((List<Message>) state.value("messages").orElseThrow(() -> new IllegalArgumentException("messages is empty")));
                 String planResult = chatClient
-                        .prompt().messages(messageList).tools(this).stream().chatResponse()
+                        .prompt().messages(messageList).tools(this).toolCallbacks(toolCallbackList).stream().chatResponse()
                         .concatWith(Flux.just(new ChatResponse(List.of(new Generation(new AssistantMessage("\n\n"))))))
                         .doOnNext(sink::tryEmitNext)
                         .map(chatResponse -> chatResponse.getResult().getOutput().getText())
@@ -159,7 +152,7 @@ public class PlanAgent extends BaseAgent {
                 messageList.add(new SystemMessage(SUMMARY_INSTRUCTION));
                 String summaryResult = Flux
                         .just(new ChatResponse(List.of(new Generation(new AssistantMessage("[ SUMMARY ]: \n\n")))))
-                        .concatWith(chatClient.prompt().messages(messageList).stream().chatResponse())
+                        .concatWith(chatClient.prompt().messages(messageList).toolCallbacks(toolCallbackList).stream().chatResponse())
                         .concatWith(Flux.just(new ChatResponse(List.of(new Generation(new AssistantMessage("\n\n"))))))
                         .doOnNext(sink::tryEmitNext)
                         .map(chatResponse -> chatResponse.getResult().getOutput().getText())
@@ -201,14 +194,14 @@ public class PlanAgent extends BaseAgent {
             最后输入参数，调用该工具创建计划；
             该工具会生成具体的计划对象，然后返回true或false表示是否创建成功。
             """)
-    public boolean createPlan(@ToolParam(description = "计划的唯一标识") String planId,
+    public Boolean createPlan(@ToolParam(description = "计划的唯一标识") String planId,
                               @ToolParam(description = "用户提出的需求") String request,
                               @ToolParam(description = "对用户需求的分析") String analysis,
                               @ToolParam(description = "每一步骤对应的Agent名称列表，表示该步骤交由哪个Agent执行") List<String> agentNameList,
                               @ToolParam(description = "每一步骤对应的要求列表，表示该步骤具体要求和执行动作的描述") List<String> requirementList) {
         Plan plan = new Plan(planId, request, analysis, agentNameList, requirementList);
         planMap.put(planId, plan);
-        return true;
+        return Boolean.TRUE;
     }
 
     public record Plan(String planId, String request, String analysis, List<String> agentNameList,
