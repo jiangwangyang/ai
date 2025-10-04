@@ -1,11 +1,11 @@
-package com.github.jiangwangyang.ai.client;
+package com.github.jiangwangyang.ai.agent.plan;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ClientApplication {
+public class PlanAgentApplication {
     public static void main(String[] args) {
-        SpringApplication.run(ClientApplication.class, args);
+        SpringApplication.run(PlanAgentApplication.class, args);
     }
 }

@@ -1,0 +1,14 @@
+spring:
+  ai:
+    alibaba:
+      a2a:
+        nacos:
+          server-addr: ${NACOS_ADDRESS:localhost:8848}
+          namespace: ${NACOS_NAMESPACE:public}
+          username: ${NACOS_USERNAME:nacos}
+          password: ${NACOS_PASSWORD:123456}
+        server:
+          version: 1.0.0
+          card:
+            name: plan_agent
+            description: 将复杂问题分解为可管理的步骤，然后按照步骤执行，最后汇总结果

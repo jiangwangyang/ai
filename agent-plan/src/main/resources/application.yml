@@ -1,0 +1,9 @@
+server:
+  port: 8000
+spring:
+  application:
+    name: agent-plan
+  config:
+    import:
+      - classpath:config/dashscope.yml
+      - classpath:config/a2a.yml

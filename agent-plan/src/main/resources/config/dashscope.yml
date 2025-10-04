@@ -1,0 +1,8 @@
+spring:
+  ai:
+    dashscope:
+      api-key: ${BAILIAN_API_KEY}
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          model: qwen3-max
