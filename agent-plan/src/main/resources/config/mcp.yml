@@ -14,3 +14,9 @@ spring:
                 mcp-memory:
                   service-name: mcp-memory
                   version: 1.0.0
+                china-railway:
+                  service-name: china-railway
+                  version: 1.0.0
+                WebSearch:
+                  service-name: WebSearch
+                  version: 1.0.0

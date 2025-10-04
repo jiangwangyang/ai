@@ -1,4 +1,4 @@
-package com.github.jiangwangyang.ai.agent.search.config;
+package com.github.jiangwangyang.ai.agent.plan.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

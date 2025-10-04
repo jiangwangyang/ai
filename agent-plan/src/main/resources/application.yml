@@ -8,3 +8,5 @@ spring:
       - classpath:config/dashscope.yml
       - classpath:config/a2a.yml
       - classpath:config/mcp.yml
+      - classpath:config/search_agent.yml
+      - classpath:config/railway_agent.yml
