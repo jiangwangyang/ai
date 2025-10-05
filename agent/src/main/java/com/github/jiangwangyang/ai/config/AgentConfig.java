@@ -1,9 +1,9 @@
-package com.github.jiangwangyang.ai.agent.config;
+package com.github.jiangwangyang.ai.config;
 
-import com.github.jiangwangyang.ai.agent.OpenAiChatModelWithoutTool;
-import com.github.jiangwangyang.ai.agent.agent.BaseAgent;
-import com.github.jiangwangyang.ai.agent.agent.ReactAgent;
-import com.github.jiangwangyang.ai.agent.service.PlanService;
+import com.github.jiangwangyang.ai.common.agent.BaseAgent;
+import com.github.jiangwangyang.ai.common.agent.ReactAgent;
+import com.github.jiangwangyang.ai.common.model.OpenAiChatModelWithoutTool;
+import com.github.jiangwangyang.ai.common.tool.PlanTool;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
@@ -41,7 +42,7 @@ public class AgentConfig {
     @Autowired
     private ToolCallbackResolver toolCallbackResolver;
     @Autowired
-    private PlanService planService;
+    private PlanTool planTool;
 
     @Bean("planAgent")
     public BaseAgent planAgent(OpenAiChatModelWithoutTool openAiChatModelWithoutTool,
@@ -49,7 +50,7 @@ public class AgentConfig {
         return new ReactAgent(
                 openAiChatModelWithoutTool,
                 chatMemory(),
-                List.of(ToolCallbacks.from(planService)),
+                List.of(ToolCallbacks.from(planTool)),
                 toolCallbackResolver,
                 1,
                 systemPrompt,
@@ -57,6 +58,7 @@ public class AgentConfig {
         );
     }
 
+    @Primary
     @Bean("reactAgent")
     public BaseAgent reactAgent(OpenAiChatModelWithoutTool openAiChatModelWithoutTool,
                                 @Value("${agent.react.system-prompt}") String systemPrompt,
@@ -94,8 +96,18 @@ public class AgentConfig {
     }
 
     private OpenAiApi openAiApi(OpenAiChatProperties chatProperties, OpenAiConnectionProperties commonProperties, RestClient.Builder restClientBuilder, WebClient.Builder webClientBuilder, ResponseErrorHandler responseErrorHandler, String modelType) {
-        OpenAIAutoConfigurationUtil.ResolvedConnectionProperties resolved = OpenAIAutoConfigurationUtil.resolveConnectionProperties(commonProperties, chatProperties, modelType);
-        return OpenAiApi.builder().baseUrl(resolved.baseUrl()).apiKey(new SimpleApiKey(resolved.apiKey())).headers(resolved.headers()).completionsPath(chatProperties.getCompletionsPath()).embeddingsPath("/v1/embeddings").restClientBuilder(restClientBuilder).webClientBuilder(webClientBuilder).responseErrorHandler(responseErrorHandler).build();
+        OpenAIAutoConfigurationUtil.ResolvedConnectionProperties resolved = OpenAIAutoConfigurationUtil
+                .resolveConnectionProperties(commonProperties, chatProperties, modelType);
+        return OpenAiApi.builder()
+                .baseUrl(resolved.baseUrl())
+                .apiKey(new SimpleApiKey(resolved.apiKey()))
+                .headers(resolved.headers())
+                .completionsPath(chatProperties.getCompletionsPath())
+                .embeddingsPath("/v1/embeddings")
+                .restClientBuilder(restClientBuilder)
+                .webClientBuilder(webClientBuilder)
+                .responseErrorHandler(responseErrorHandler)
+                .build();
     }
 
 }

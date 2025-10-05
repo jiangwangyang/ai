@@ -1,4 +1,4 @@
-package com.github.jiangwangyang.ai.agent.agent;
+package com.github.jiangwangyang.ai.common.agent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,10 +19,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -112,7 +109,7 @@ public abstract class BaseAgent {
         Sinks.Many<String> sinks = conversationIdSinksMap.get(conversationId);
         sinks.tryEmitNext("**[Assistant]** ");
         return chatResponseFlux
-                .doOnNext(chatResponse -> sinks.tryEmitNext(chatResponse.getResult().getOutput().getText()))
+                .doOnNext(chatResponse -> sinks.tryEmitNext(Optional.ofNullable(chatResponse.getResult().getOutput().getText()).orElse("")))
                 .doOnNext(chatResponse -> chatMemory.add(conversationId, chatResponse.getResult().getOutput()))
                 .collectList()
                 .block();

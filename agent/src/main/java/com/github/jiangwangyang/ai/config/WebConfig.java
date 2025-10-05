@@ -1,4 +1,4 @@
-package com.github.jiangwangyang.ai.agent.config;
+package com.github.jiangwangyang.ai.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,6 +13,9 @@ import java.nio.charset.StandardCharsets;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    /**
+     * 配置全局默认字符编码为UTF-8
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new HandlerInterceptor() {

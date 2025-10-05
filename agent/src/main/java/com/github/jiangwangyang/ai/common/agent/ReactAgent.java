@@ -1,4 +1,4 @@
-package com.github.jiangwangyang.ai.agent.agent;
+package com.github.jiangwangyang.ai.common.agent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,4 +1,4 @@
-package com.github.jiangwangyang.ai.agent.service;
+package com.github.jiangwangyang.ai.common.tool;
 
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -9,12 +9,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-public class PlanService {
+public class PlanTool {
 
     private final Map<String, Plan> planMap = new ConcurrentHashMap<>();
 
     public Plan getPlan(String conversationId) {
         return planMap.get(conversationId);
+    }
+
+    public boolean removePlan(String conversationId) {
+        return planMap.remove(conversationId) != null;
     }
 
     @Tool(description = "这是一个计划工具，可让代理创建和管理用于解决复杂任务的计划。\n该工具提供创建计划功能。\n使用中文回答")
