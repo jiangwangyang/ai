@@ -1,0 +1,10 @@
+server:
+  port: 8000
+spring:
+  application:
+    name: agent
+  config:
+    import:
+      - classpath:config/openai.yml
+      - classpath:config/mcp.yml
+      - classpath:config/react.yml

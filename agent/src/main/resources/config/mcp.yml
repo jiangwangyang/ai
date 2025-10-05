@@ -1,0 +1,12 @@
+spring:
+  ai:
+    mcp:
+      client:
+        sse:
+          connections:
+            WebSearch:
+              url: https://dashscope.aliyuncs.com
+              sse-endpoint: /api/v1/mcps/WebSearch/sse
+            china-railway:
+              url: https://dashscope.aliyuncs.com
+              sse-endpoint: /api/v1/mcps/china-railway/sse
