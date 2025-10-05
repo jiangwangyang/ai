@@ -3,6 +3,7 @@ package com.github.jiangwangyang.ai.agent.config;
 import com.github.jiangwangyang.ai.agent.OpenAiChatModelWithoutTool;
 import com.github.jiangwangyang.ai.agent.agent.BaseAgent;
 import com.github.jiangwangyang.ai.agent.agent.ReactAgent;
+import com.github.jiangwangyang.ai.agent.service.PlanService;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
@@ -16,6 +17,7 @@ import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicat
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.resolution.ToolCallbackResolver;
 import org.springframework.beans.factory.ObjectProvider;
@@ -29,6 +31,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class AgentConfig {
@@ -37,8 +40,24 @@ public class AgentConfig {
     private ToolCallbackProvider toolCallbackProvider;
     @Autowired
     private ToolCallbackResolver toolCallbackResolver;
+    @Autowired
+    private PlanService planService;
 
-    @Bean
+    @Bean("planAgent")
+    public BaseAgent planAgent(OpenAiChatModelWithoutTool openAiChatModelWithoutTool,
+                               @Value("${agent.plan.system-prompt}") String systemPrompt) {
+        return new ReactAgent(
+                openAiChatModelWithoutTool,
+                chatMemory(),
+                List.of(ToolCallbacks.from(planService)),
+                toolCallbackResolver,
+                1,
+                systemPrompt,
+                "没有下一步"
+        );
+    }
+
+    @Bean("reactAgent")
     public BaseAgent reactAgent(OpenAiChatModelWithoutTool openAiChatModelWithoutTool,
                                 @Value("${agent.react.system-prompt}") String systemPrompt,
                                 @Value("${agent.react.next-step-prompt}") String nextStepPrompt) {

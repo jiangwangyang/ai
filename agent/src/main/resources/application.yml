@@ -7,4 +7,5 @@ spring:
     import:
       - classpath:config/openai.yml
       - classpath:config/mcp.yml
-      - classpath:config/react.yml
+      - classpath:config/agent_plan.yml
+      - classpath:config/agent_react.yml

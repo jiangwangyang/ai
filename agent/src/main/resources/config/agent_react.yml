@@ -70,6 +70,9 @@ agent:
       现在请回答用户问题：
       
       # 当前环境变量
+      ## 当前对话ID
+      <conversation>{conversationId}</conversation>
+      
       ## 当前用户ID
       <user>{user}</user>
       
@@ -85,7 +88,7 @@ agent:
       一步一步思考，逐步思考，然后使用工具完成用户的问题或任务。
 
     next-step-prompt: |
-      根据当前状态和可用工具，确定下一步行动，根据之前的执行结果，继续完成用户<user>{user}</user>的任务：<task>{query}</task>，还需要执行什么工具来继续完成任务。
+      根据当前状态和可用工具，确定下一步行动，根据之前的执行结果，继续完成当前对话<conversation>{conversationId}</conversation>用户<user>{user}</user>的任务：<task>{query}</task>，还需要执行什么工具来继续完成任务。
       -先判断任务是否已经完成：
       - 如果当前任务已完成，则不调用工具。
       - 如果当前任务未完成，尽可能使用工具调用来完成任务。

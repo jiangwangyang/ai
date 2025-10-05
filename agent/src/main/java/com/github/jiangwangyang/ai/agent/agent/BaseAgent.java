@@ -19,7 +19,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -58,8 +61,7 @@ public abstract class BaseAgent {
     /**
      * 运行代理主循环
      */
-    public Flux<String> run(String user, String query) {
-        String conversationId = UUID.randomUUID().toString();
+    public Flux<String> run(String conversationId, String user, String query) {
         Sinks.Many<String> sinks = Sinks.many().multicast().onBackpressureBuffer();
 
         CompletableFuture.runAsync(() -> {
@@ -69,6 +71,7 @@ public abstract class BaseAgent {
 
                 int currentStep = 0;
                 String systemPromptRender = new PromptTemplate(systemPrompt).render(Map.of(
+                        "conversationId", conversationId,
                         "user", user,
                         "time", LocalDateTime.now().toString()));
                 chatMemory.add(conversationId, new SystemMessage(systemPromptRender));
@@ -81,6 +84,7 @@ public abstract class BaseAgent {
                         break;
                     }
                     String nextStepPromptRender = new PromptTemplate(nextStepPrompt).render(Map.of(
+                            "conversationId", conversationId,
                             "user", user,
                             "query", query));
                     chatMemory.add(conversationId, new SystemMessage(nextStepPromptRender));
@@ -90,6 +94,9 @@ public abstract class BaseAgent {
                     sinks.tryEmitNext("Terminated: Reached max steps (" + maxSteps + ")\n\n");
                 }
 
+            } catch (Exception e) {
+                log.error("Agent Error", e);
+                sinks.tryEmitError(e);
             } finally {
                 conversationIdSinksMap.remove(conversationId);
                 conversationIdThreadLocal.remove();
