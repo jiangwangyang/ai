@@ -1,4 +1,4 @@
-package com.github.jiangwangyang.dify.config;
+package com.github.jiangwangyang.ai.dify.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

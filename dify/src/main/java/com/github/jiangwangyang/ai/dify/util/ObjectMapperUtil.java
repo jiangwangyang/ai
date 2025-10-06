@@ -1,4 +1,4 @@
-package com.github.jiangwangyang.dify.util;
+package com.github.jiangwangyang.ai.dify.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;

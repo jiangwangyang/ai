@@ -1,4 +1,4 @@
-package com.github.jiangwangyang.dify.util;
+package com.github.jiangwangyang.ai.dify.util;
 
 public final class UnicodeUtil {
 

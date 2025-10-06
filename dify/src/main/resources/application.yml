@@ -1,8 +1,5 @@
 server:
-  port: 10000
+  port: 8080
 spring:
   application:
     name: dify
-  config:
-    import:
-      - classpath:config/a2a.yml
