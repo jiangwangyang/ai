@@ -2,7 +2,7 @@ package com.github.jiangwangyang.ai.controller;
 
 import com.github.jiangwangyang.ai.common.a2a.WebClientA2AClient;
 import com.github.jiangwangyang.ai.common.agent.BaseAgent;
-import com.github.jiangwangyang.ai.common.tool.PlanTool;
+import com.github.jiangwangyang.ai.service.PlanService;
 import io.a2a.A2A;
 import io.a2a.spec.Message;
 import io.a2a.spec.TaskStatus;
@@ -27,7 +27,7 @@ public class ChatController {
     @Autowired
     private WebClientA2AClient webClientA2AClient;
     @Autowired
-    private PlanTool planTool;
+    private PlanService planService;
     @Autowired
     @Qualifier("planAgent")
     private BaseAgent planAgent;
@@ -47,7 +47,7 @@ public class ChatController {
                 planAgent.run(conversationId, user, message)
                         .doOnNext(sinks::tryEmitNext)
                         .blockLast();
-                PlanTool.Plan plan = planTool.getPlan(conversationId);
+                PlanService.Plan plan = planService.getPlan(conversationId);
                 sinks.tryEmitNext("\n\n");
                 // 输出计划
                 if (plan == null) {
@@ -68,7 +68,7 @@ public class ChatController {
             } catch (Exception e) {
                 sinks.tryEmitError(e);
             } finally {
-                planTool.removePlan(conversationId);
+                planService.removePlan(conversationId);
                 sinks.tryEmitComplete();
             }
         });
