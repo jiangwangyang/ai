@@ -29,6 +29,7 @@ public class ReactAgent extends BaseAgent {
         super(chatModel, chatMemory, availableTools, toolCallbackResolver, maxSteps, systemPrompt, nextStepPrompt);
         options = chatModel.getDefaultOptions();
         if (options instanceof ToolCallingChatOptions toolCallingChatOptions) {
+            toolCallingChatOptions.setInternalToolExecutionEnabled(false);
             toolCallingChatOptions.setToolCallbacks(availableTools);
         }
     }

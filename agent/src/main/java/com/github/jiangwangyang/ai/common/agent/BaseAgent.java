@@ -111,6 +111,7 @@ public abstract class BaseAgent {
         return chatResponseFlux
                 .doOnNext(chatResponse -> sinks.tryEmitNext(Optional.ofNullable(chatResponse.getResult().getOutput().getText()).orElse("")))
                 .doOnNext(chatResponse -> chatMemory.add(conversationId, chatResponse.getResult().getOutput()))
+                .doOnComplete(() -> sinks.tryEmitNext("\n\n"))
                 .collectList()
                 .block();
     }
@@ -119,9 +120,11 @@ public abstract class BaseAgent {
         String conversationId = conversationIdThreadLocal.get();
         Sinks.Many<String> sinks = conversationIdSinksMap.get(conversationId);
         for (ToolResponseMessage.ToolResponse response : toolResponseMessage.getResponses()) {
+            sinks.tryEmitNext("<div style=\"color:gray;\">\n\n");
             sinks.tryEmitNext("**[Tool]** ");
             sinks.tryEmitNext(response.responseData());
             sinks.tryEmitNext("\n\n");
+            sinks.tryEmitNext("</div>\n\n");
         }
         chatMemory.add(conversationId, toolResponseMessage);
     }

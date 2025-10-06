@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.a2a.spec.*;
 import io.a2a.util.Utils;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -50,8 +51,8 @@ public class WebClientA2AClient {
         return webClient.post()
                 .uri(url)
                 .headers(httpHeaders -> headers.forEach(httpHeaders::set))
-                .header("content-type", "application/json")
-                .header("accept", "text/event-stream")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
                 .bodyValue(requestBodyJson)
                 .retrieve()
                 .bodyToFlux(SSE_STRING_TYPE_REFERENCE)
@@ -93,7 +94,7 @@ public class WebClientA2AClient {
         String responseBody = webClient.post()
                 .uri(url)
                 .headers(h -> headers.forEach(h::add))
-                .header("content-type", "application/json")
+                .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBodyJson)
                 .retrieve()
                 .toEntity(String.class)

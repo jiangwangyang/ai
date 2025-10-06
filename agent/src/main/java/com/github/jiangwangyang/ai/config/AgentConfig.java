@@ -2,34 +2,19 @@ package com.github.jiangwangyang.ai.config;
 
 import com.github.jiangwangyang.ai.common.agent.BaseAgent;
 import com.github.jiangwangyang.ai.common.agent.ReactAgent;
-import com.github.jiangwangyang.ai.common.model.OpenAiChatModelWithoutTool;
 import com.github.jiangwangyang.ai.common.tool.PlanTool;
-import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
-import org.springframework.ai.chat.observation.ChatModelObservationConvention;
-import org.springframework.ai.model.SimpleApiKey;
-import org.springframework.ai.model.openai.autoconfigure.OpenAIAutoConfigurationUtil;
-import org.springframework.ai.model.openai.autoconfigure.OpenAiChatProperties;
-import org.springframework.ai.model.openai.autoconfigure.OpenAiConnectionProperties;
-import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
-import org.springframework.ai.model.tool.ToolCallingManager;
-import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
-import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.resolution.ToolCallbackResolver;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.web.client.ResponseErrorHandler;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +23,8 @@ import java.util.List;
 public class AgentConfig {
 
     @Autowired
+    private ChatModel chatModel;
+    @Autowired
     private ToolCallbackProvider toolCallbackProvider;
     @Autowired
     private ToolCallbackResolver toolCallbackResolver;
@@ -45,10 +32,9 @@ public class AgentConfig {
     private PlanTool planTool;
 
     @Bean("planAgent")
-    public BaseAgent planAgent(OpenAiChatModelWithoutTool openAiChatModelWithoutTool,
-                               @Value("${agent.plan.system-prompt}") String systemPrompt) {
+    public BaseAgent planAgent(@Value("${agent.plan.system-prompt}") String systemPrompt) {
         return new ReactAgent(
-                openAiChatModelWithoutTool,
+                chatModel,
                 chatMemory(),
                 List.of(ToolCallbacks.from(planTool)),
                 toolCallbackResolver,
@@ -60,11 +46,10 @@ public class AgentConfig {
 
     @Primary
     @Bean("reactAgent")
-    public BaseAgent reactAgent(OpenAiChatModelWithoutTool openAiChatModelWithoutTool,
-                                @Value("${agent.react.system-prompt}") String systemPrompt,
+    public BaseAgent reactAgent(@Value("${agent.react.system-prompt}") String systemPrompt,
                                 @Value("${agent.react.next-step-prompt}") String nextStepPrompt) {
         return new ReactAgent(
-                openAiChatModelWithoutTool,
+                chatModel,
                 chatMemory(),
                 Arrays.stream(toolCallbackProvider.getToolCallbacks()).toList(),
                 toolCallbackResolver,
@@ -74,39 +59,12 @@ public class AgentConfig {
         );
     }
 
-
-    @Bean
-    public OpenAiChatModelWithoutTool openAiChatModelWithoutTool(OpenAiConnectionProperties commonProperties, OpenAiChatProperties chatProperties, ObjectProvider<RestClient.Builder> restClientBuilderProvider, ObjectProvider<WebClient.Builder> webClientBuilderProvider, ToolCallingManager toolCallingManager, RetryTemplate retryTemplate, ResponseErrorHandler responseErrorHandler, ObjectProvider<ObservationRegistry> observationRegistry, ObjectProvider<ChatModelObservationConvention> observationConvention, ObjectProvider<ToolExecutionEligibilityPredicate> openAiToolExecutionEligibilityPredicate) {
-        OpenAiApi openAiApi = this.openAiApi(chatProperties, commonProperties, restClientBuilderProvider.getIfAvailable(RestClient::builder), webClientBuilderProvider.getIfAvailable(WebClient::builder), responseErrorHandler, "chat");
-        return new OpenAiChatModelWithoutTool(openAiApi,
-                chatProperties.getOptions(),
-                toolCallingManager,
-                retryTemplate,
-                observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP),
-                openAiToolExecutionEligibilityPredicate.getIfUnique(DefaultToolExecutionEligibilityPredicate::new));
-    }
-
     @Bean
     public ChatMemory chatMemory() {
         InMemoryChatMemoryRepository chatMemoryRepository = new InMemoryChatMemoryRepository();
         return MessageWindowChatMemory.builder()
                 .chatMemoryRepository(chatMemoryRepository)
                 .maxMessages(1000)
-                .build();
-    }
-
-    private OpenAiApi openAiApi(OpenAiChatProperties chatProperties, OpenAiConnectionProperties commonProperties, RestClient.Builder restClientBuilder, WebClient.Builder webClientBuilder, ResponseErrorHandler responseErrorHandler, String modelType) {
-        OpenAIAutoConfigurationUtil.ResolvedConnectionProperties resolved = OpenAIAutoConfigurationUtil
-                .resolveConnectionProperties(commonProperties, chatProperties, modelType);
-        return OpenAiApi.builder()
-                .baseUrl(resolved.baseUrl())
-                .apiKey(new SimpleApiKey(resolved.apiKey()))
-                .headers(resolved.headers())
-                .completionsPath(chatProperties.getCompletionsPath())
-                .embeddingsPath("/v1/embeddings")
-                .restClientBuilder(restClientBuilder)
-                .webClientBuilder(webClientBuilder)
-                .responseErrorHandler(responseErrorHandler)
                 .build();
     }
 
